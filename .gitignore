@@ -1,0 +1,16 @@
+# Xcode
+*.xcodeproj
+xcuserdata/
+DerivedData/
+build/
+*.xcresult
+
+# SPM
+.build/
+.swiftpm/
+
+# Firebase secrets
+Changsa/Resources/GoogleService-Info.plist
+
+# macOS
+.DS_Store
