@@ -54,6 +54,9 @@ targets:
         NSLocationWhenInUseUsageDescription: "Drokpo uses your location to show you people nearby."
         NSPhotoLibraryUsageDescription: "Drokpo needs access to your photos so you can add them to your profile."
         CFBundleDisplayName: Drokpo
+        # Only standard HTTPS/TLS — exempt from export compliance, so
+        # TestFlight doesn't ask the encryption question on every build.
+        ITSAppUsesNonExemptEncryption: false
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
         CFBundleURLTypes:
