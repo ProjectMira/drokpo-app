@@ -140,7 +140,10 @@ struct ProfileView: View {
         defer { isWorking = false }
         do {
             guard let data = try await item.loadTransferable(type: Data.self),
-                  let image = UIImage(data: data) else { return }
+                  let image = UIImage(data: data) else {
+                errorMessage = PhotoUploaderError.invalidImage.errorDescription
+                return
+            }
             let storagePath = try await PhotoUploader.upload(image)
             let order = profile?.photos?.count ?? 0
             let _: EmptyResponse = try await APIClient.shared.post(

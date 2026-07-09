@@ -37,12 +37,19 @@ enum PhotoUploader {
     }
 
     private static func downscaledJPEG(from image: UIImage) -> Data? {
-        let largestSide = max(image.size.width, image.size.height)
+        // Work in pixels, not points: image.size is in points and the renderer
+        // multiplies by its scale, so a screen-scale renderer would upscale a
+        // 1600pt canvas to 4800px and blow past the 10MB storage rule limit.
+        let pixelSize = CGSize(width: image.size.width * image.scale,
+                               height: image.size.height * image.scale)
+        let largestSide = max(pixelSize.width, pixelSize.height)
         guard largestSide > maxDimension else { return image.jpegData(compressionQuality: jpegQuality) }
 
         let scale = maxDimension / largestSide
-        let newSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
-        let renderer = UIGraphicsImageRenderer(size: newSize)
+        let newSize = CGSize(width: pixelSize.width * scale, height: pixelSize.height * scale)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let renderer = UIGraphicsImageRenderer(size: newSize, format: format)
         let resized = renderer.image { _ in
             image.draw(in: CGRect(origin: .zero, size: newSize))
         }
