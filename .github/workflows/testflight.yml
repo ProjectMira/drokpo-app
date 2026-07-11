@@ -37,9 +37,15 @@ jobs:
           # xcodebuild feeds the .p8 straight to CryptoKit, which rejects
           # anything that isn't a pristine PEM with "invalidPEMDocument" —
           # CRLF endings, collapsed/flattened newlines, a missing trailing
-          # newline, or a base64-wrapped secret all trip it. Normalise whatever
-          # form the secret is stored in into a canonical PEM.
-          raw="$(printf '%s' "$ASC_API_KEY_P8" | tr -d '\r')"
+          # newline, literal "\n" escape sequences, or a base64-wrapped secret
+          # all trip it. Normalise whatever form the secret is stored in into a
+          # canonical PEM.
+          raw="$ASC_API_KEY_P8"
+          # Delete literal "\n"/"\r" escape sequences (secrets saved from a .env
+          # or JSON-escaped CLI value store newlines this way) and carriage
+          # returns. Deleting rather than converting keeps this portable across
+          # BSD/GNU sed; the base64 body is rebuilt from scratch below anyway.
+          raw="$(printf '%s' "$raw" | sed -e 's/\\r//g' -e 's/\\n//g' | tr -d '\r')"
           if ! printf '%s' "$raw" | grep -q 'BEGIN PRIVATE KEY'; then
             # No PEM markers — assume the secret is a base64-encoded .p8 file.
             raw="$(printf '%s' "$raw" | tr -d '[:space:]' | openssl base64 -d -A 2>/dev/null || true)"
@@ -56,9 +62,19 @@ jobs:
           # Fail early with a clear message if the result still isn't a usable
           # key, instead of a cryptic CryptoKit error deep in the archive step.
           if ! openssl pkey -in "$KEY_PATH" -noout 2>/dev/null; then
-            echo "::error::ASC_API_KEY_P8 could not be normalised into a valid App Store Connect .p8 key. Re-add the secret with the exact contents of AuthKey_${ASC_KEY_ID}.p8 (or its base64)."
+            # Non-sensitive diagnostics (lengths only, never key material) to
+            # tell an empty/wrong secret apart from a formatting problem.
+            echo "::error::ASC_API_KEY_P8 could not be normalised into a valid App Store Connect .p8 key."
+            echo "Diagnostics: raw secret is ${#ASC_API_KEY_P8} chars; extracted base64 body is ${#body} chars (a valid P-256 .p8 body is ~200)."
+            if printf '%s' "$ASC_API_KEY_P8" | grep -q 'BEGIN PRIVATE KEY'; then
+              echo "PEM markers were present, so the base64 body itself is malformed or truncated."
+            else
+              echo "No PEM markers found in the secret, and it did not base64-decode to a key."
+            fi
+            echo "Fix: re-add the secret as the exact, unmodified contents of AuthKey_${ASC_KEY_ID}.p8 — e.g.  gh secret set ASC_API_KEY_P8 < AuthKey_${ASC_KEY_ID}.p8"
             exit 1
           fi
+          echo "App Store Connect key normalised and validated."
         env:
           GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
           ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
