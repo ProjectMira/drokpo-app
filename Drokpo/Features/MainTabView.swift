@@ -29,16 +29,23 @@ struct MainTabView: View {
         .environment(chats)
         .onAppear {
             if let uid = session.uid { chats.start(uid: uid) }
-            selectChatsIfDeepLinked()
+            routeDeepLink()
         }
-        .onChange(of: router.pendingMatchId) { selectChatsIfDeepLinked() }
+        .onChange(of: router.pendingMatchId) { routeDeepLink() }
+        .onChange(of: router.pendingType) { routeDeepLink() }
         .onDisappear { chats.stop() }
     }
 
-    /// A pending push-tap always lands on the Chats tab; ChatsView consumes the
-    /// router to decide whether to open the thread, so don't clear it here.
-    private func selectChatsIfDeepLinked() {
-        if router.pendingMatchId != nil || router.pendingType != nil {
+    /// A "match"/"message" push-tap lands on the Chats tab; ChatsView consumes
+    /// the router to decide whether to open the thread, so don't clear it
+    /// here. A "like" push has no thread to open, so land on Likes and
+    /// consume it immediately.
+    private func routeDeepLink() {
+        guard router.pendingMatchId != nil || router.pendingType != nil else { return }
+        if router.pendingType == "like" {
+            selection = .likes
+            router.clear()
+        } else {
             selection = .chats
         }
     }

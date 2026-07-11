@@ -12,7 +12,7 @@ struct LikesView: View {
     @State private var received: [SwipeEntry] = []
     @State private var given: [SwipeEntry] = []
     @State private var isLoading = true
-    @State private var matchedName: String?
+    @State private var matched: (name: String, matchId: String?)?
     @State private var errorMessage: String?
 
     private var entries: [SwipeEntry] {
@@ -39,15 +39,20 @@ struct LikesView: View {
                 }
             }
             .navigationTitle("Likes")
-            .task { await load() }
+            .onAppear { Task { await load() } }
             .refreshable { await load() }
             .alert("It's a match!", isPresented: .init(
-                get: { matchedName != nil },
-                set: { if !$0 { matchedName = nil } }
+                get: { matched != nil },
+                set: { if !$0 { matched = nil } }
             )) {
-                Button("Nice!", role: .cancel) {}
+                Button("Say hi") {
+                    if let matchId = matched?.matchId {
+                        DeepLinkRouter.shared.handle(type: "message", matchId: matchId)
+                    }
+                }
+                Button("Later", role: .cancel) {}
             } message: {
-                Text("You and \(matchedName ?? "they") liked each other. Say hi in Chats!")
+                Text("You and \(matched?.name ?? "they") liked each other.")
             }
             .alert("Something went wrong", isPresented: .init(
                 get: { errorMessage != nil },
@@ -64,7 +69,13 @@ struct LikesView: View {
         List(entries) { entry in
             if let card = entry.otherUser {
                 NavigationLink {
-                    ProfileDetailView(card: card)
+                    ProfileDetailView(
+                        card: card,
+                        context: .likedYou(
+                            matchId: entry.matchId,
+                            onLikeBack: { await likeBack(card) }
+                        )
+                    )
                 } label: {
                     HStack(spacing: 12) {
                         RemotePhotoView(photo: card.photos?.first)
@@ -76,6 +87,14 @@ struct LikesView: View {
                                 if let age = card.displayAge {
                                     Text("\(age)").foregroundStyle(.secondary)
                                 }
+                                if entry.isMatched {
+                                    Text("Matched")
+                                        .font(.caption2.bold())
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(Capsule().fill(.green))
+                                }
                             }
                             if let region = card.region {
                                 Text(region)
@@ -84,9 +103,9 @@ struct LikesView: View {
                             }
                         }
                         Spacer()
-                        if direction == .received {
+                        if direction == .received && !entry.isMatched {
                             Button {
-                                Task { await likeBack(card) }
+                                Task { await likeBackFromRow(card) }
                             } label: {
                                 Image(systemName: "heart.fill")
                                     .foregroundStyle(.pink)
@@ -120,7 +139,11 @@ struct LikesView: View {
         .padding()
     }
 
+    /// Only shows the full-screen spinner on the very first load; later calls
+    /// (tab reselected, pull-to-refresh, returning from a like push) refresh
+    /// silently so the existing list doesn't flash.
     private func load() async {
+        if received.isEmpty && given.isEmpty { isLoading = true }
         do {
             async let receivedList: TolerantList<SwipeEntry> = APIClient.shared.get(
                 "/api/swipes/received", query: [URLQueryItem(name: "action", value: "like")]
@@ -136,17 +159,27 @@ struct LikesView: View {
         isLoading = false
     }
 
-    private func likeBack(_ card: FeedCard) async {
+    /// Shared by both the row's quick-like heart and the pushed
+    /// ProfileDetailView's "Like back" button. Only removes the row from
+    /// `received` — it does NOT set `matched`, because ProfileDetailView
+    /// shows its own match alert and setting `matched` here too would
+    /// present two alerts for the same tap.
+    @discardableResult
+    private func likeBack(_ card: FeedCard) async -> SwipeResult? {
         do {
             let result: SwipeResult = try await APIClient.shared.post(
                 "/api/swipes/\(card.uid)", body: SwipeIn(action: .like)
             )
             received.removeAll { $0.otherUser?.uid == card.uid }
-            if result.isMatch {
-                matchedName = card.displayName
-            }
+            return result
         } catch {
             errorMessage = error.localizedDescription
+            return nil
         }
+    }
+
+    private func likeBackFromRow(_ card: FeedCard) async {
+        guard let result = await likeBack(card), result.isMatch else { return }
+        matched = (name: card.displayName ?? "they", matchId: result.matchId ?? result.match?.matchId)
     }
 }

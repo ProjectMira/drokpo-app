@@ -3,6 +3,7 @@ import SwiftUI
 struct CardView: View {
     let card: FeedCard
     let onSafetyTapped: () -> Void
+    var onExpand: (() -> Void)? = nil
 
     @State private var photoIndex = 0
 
@@ -49,6 +50,11 @@ struct CardView: View {
                         if let age = card.displayAge {
                             Text("\(age)").font(.title2)
                         }
+                        if onExpand != nil {
+                            Image(systemName: "chevron.up.circle.fill")
+                                .font(.subheadline)
+                                .foregroundStyle(.white.opacity(0.8))
+                        }
                         Spacer()
                         Button(action: onSafetyTapped) {
                             Image(systemName: "ellipsis.circle.fill")
@@ -75,6 +81,8 @@ struct CardView: View {
                 }
                 .foregroundStyle(.white)
                 .padding()
+                .contentShape(Rectangle())
+                .onTapGesture { onExpand?() }
             }
             .clipShape(RoundedRectangle(cornerRadius: 20))
             .shadow(radius: 6, y: 3)

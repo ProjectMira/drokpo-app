@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FeedView: View {
     @State private var model = FeedModel()
+    @State private var expandedCard: FeedCard?
 
     var body: some View {
         NavigationStack {
@@ -31,6 +32,29 @@ struct FeedView: View {
             } message: {
                 Text(model.errorMessage ?? "")
             }
+            .sheet(item: $expandedCard) { card in
+                NavigationStack {
+                    ProfileDetailView(
+                        card: card,
+                        context: .discover(
+                            onLike: {
+                                expandedCard = nil
+                                model.swipe(card, action: .like)
+                            },
+                            onPass: {
+                                expandedCard = nil
+                                model.swipe(card, action: .pass)
+                            }
+                        )
+                    )
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Close") { expandedCard = nil }
+                        }
+                    }
+                }
+                .presentationDetents([.large])
+            }
         }
     }
 
@@ -43,6 +67,7 @@ struct FeedView: View {
                         card: card,
                         isTop: index == 0,
                         onSwipe: { action in model.swipe(card, action: action) },
+                        onExpand: { expandedCard = card },
                         onReport: { reason in model.reportAndRemove(card, reason: reason) },
                         onBlock: { model.blockAndRemove(card) }
                     )
@@ -52,25 +77,11 @@ struct FeedView: View {
             }
             .padding(.horizontal)
 
-            HStack(spacing: 40) {
-                actionButton(systemImage: "xmark", tint: .red) {
-                    if let top = model.cards.first { model.swipe(top, action: .pass) }
-                }
-                actionButton(systemImage: "heart.fill", tint: .green) {
-                    if let top = model.cards.first { model.swipe(top, action: .like) }
-                }
-            }
+            SwipeActionButtons(
+                onPass: { if let top = model.cards.first { model.swipe(top, action: .pass) } },
+                onLike: { if let top = model.cards.first { model.swipe(top, action: .like) } }
+            )
             .padding(.bottom, 8)
-        }
-    }
-
-    private func actionButton(systemImage: String, tint: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: systemImage)
-                .font(.title2.bold())
-                .frame(width: 60, height: 60)
-                .background(Circle().fill(.background).shadow(radius: 4))
-                .foregroundStyle(tint)
         }
     }
 
@@ -98,6 +109,7 @@ private struct SwipeableCard: View {
     let card: FeedCard
     let isTop: Bool
     let onSwipe: (SwipeAction) -> Void
+    let onExpand: () -> Void
     let onReport: (String) -> Void
     let onBlock: () -> Void
 
@@ -108,7 +120,7 @@ private struct SwipeableCard: View {
     private let swipeThreshold: CGFloat = 110
 
     var body: some View {
-        CardView(card: card) { showSafetySheet = true }
+        CardView(card: card, onSafetyTapped: { showSafetySheet = true }, onExpand: isTop ? onExpand : nil)
             .offset(offset)
             .rotationEffect(.degrees(Double(offset.width / 18)))
             .overlay(alignment: .topLeading) { stamp("LIKE", color: .green, visible: offset.width > 40) }

@@ -74,6 +74,7 @@ struct Profile: Codable, Equatable, Identifiable {
             region: region,
             bio: bio,
             occupation: occupation,
+            education: education,
             languages: languages,
             interests: interests,
             socials: socials,
@@ -90,6 +91,7 @@ struct FeedCard: Codable, Equatable, Identifiable {
     var region: String?
     var bio: String?
     var occupation: String?
+    var education: String?
     var languages: [String]?
     var interests: [String]?
     var socials: Socials?
@@ -133,8 +135,11 @@ struct SwipeEntry: Codable, Equatable, Identifiable {
     var action: String?
     var createdAt: String?
     var otherUser: FeedCard?
+    var matchId: String?
+    var matchStatus: String?
 
     var id: String { uid ?? otherUser?.uid ?? UUID().uuidString }
+    var isMatched: Bool { matchId != nil }
 }
 
 struct SwipeResult: Codable {
