@@ -27,6 +27,17 @@ final class APIClient {
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
 
+    /// Never serve API responses from the URL cache. 404 is heuristically
+    /// cacheable, so URLSession.shared once replayed a cached 404 for
+    /// GET /profile/me after onboarding completed, trapping new users on the
+    /// onboarding screen. Authenticated JSON must always hit the network.
+    private let urlSession: URLSession = {
+        let configuration = URLSessionConfiguration.default
+        configuration.urlCache = nil
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        return URLSession(configuration: configuration)
+    }()
+
     func get<T: Decodable>(_ path: String, query: [URLQueryItem] = []) async throws -> T {
         try await request(method: "GET", path: path, query: query, bodyData: nil)
     }
@@ -73,7 +84,7 @@ final class APIClient {
             urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
 
-        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        let (data, response) = try await urlSession.data(for: urlRequest)
         guard let http = response as? HTTPURLResponse else { throw APIError.invalidResponse }
         guard (200..<300).contains(http.statusCode) else {
             throw APIError.http(status: http.statusCode, message: Self.errorMessage(from: data))
