@@ -33,7 +33,11 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.drokpo.ios
-        MARKETING_VERSION: "0.1.0"
+        # Must stay >= the version of the manually-uploaded build 1, which
+        # shipped as literal "1.0" (the old Info.plist ignored this setting) —
+        # TestFlight won't offer a lower version string as an update, and the
+        # App Store version record is "1.0".
+        MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: 1
         TARGETED_DEVICE_FAMILY: "1"
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
