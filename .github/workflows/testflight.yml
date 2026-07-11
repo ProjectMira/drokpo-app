@@ -93,6 +93,34 @@ jobs:
           GOOGLE_SERVICE_INFO_PLIST: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST }}
           ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
 
+      - name: Verify App Store Connect credentials
+        run: |
+          # Mint a 10-minute JWT from the restored key and hit a cheap ASC
+          # endpoint. Catches a stale/mismatched ASC_API_KEY_P8 secret in
+          # seconds instead of a cryptic 401 ten minutes into the archive.
+          cat > /tmp/asc_jwt.rb <<'RUBY'
+          require 'openssl'; require 'base64'; require 'json'
+          key_id, issuer, p8 = ARGV
+          key = OpenSSL::PKey.read(File.read(p8))
+          b64 = ->(s){ Base64.urlsafe_encode64(s).delete('=') }
+          header = b64.call({alg:'ES256', kid:key_id, typ:'JWT'}.to_json)
+          now = Time.now.to_i
+          payload = b64.call({iss:issuer, iat:now, exp:now+600, aud:'appstoreconnect-v1'}.to_json)
+          input = "#{header}.#{payload}"
+          der = key.sign(OpenSSL::Digest::SHA256.new, input)
+          asn = OpenSSL::ASN1.decode(der)
+          r, s = asn.value.map { |v| v.value.to_s(2).rjust(32, "\x00") }
+          puts "#{input}.#{b64.call(r+s)}"
+          RUBY
+          TOKEN=$(ruby /tmp/asc_jwt.rb "$ASC_KEY_ID" "$ASC_ISSUER_ID" ~/private_keys/AuthKey_${ASC_KEY_ID}.p8)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $TOKEN" \
+            "https://api.appstoreconnect.apple.com/v1/apps?limit=1")
+          if [ "$STATUS" != "200" ]; then
+            echo "::error::App Store Connect rejected the credentials (HTTP $STATUS) for key id $ASC_KEY_ID / issuer $ASC_ISSUER_ID. The ASC_API_KEY_P8 secret almost certainly holds a different key's bytes — update it:  gh secret set ASC_API_KEY_P8 --repo ProjectMira/drokpo-app < AuthKey_${ASC_KEY_ID}.p8"
+            exit 1
+          fi
+          echo "App Store Connect credentials OK (key $ASC_KEY_ID)."
+
       - name: Compute version and build number
         id: version
         run: |
