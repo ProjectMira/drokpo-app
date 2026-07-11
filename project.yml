@@ -48,6 +48,11 @@ targets:
     info:
       path: Drokpo/Info.plist
       properties:
+        # Without these, XcodeGen writes literal defaults ("1.0"/"1") into the
+        # plist and CI's CURRENT_PROJECT_VERSION override never reaches the
+        # binary — TestFlight then rejects the upload as a duplicate build.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
