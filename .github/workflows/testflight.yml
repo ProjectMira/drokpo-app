@@ -6,10 +6,10 @@ on:
   workflow_dispatch:
 
 # Required repo secrets:
-#   ASC_API_KEY_P8            — contents of AuthKey_K2J94LT633.p8 (App Manager role)
+#   ASC_API_KEY_P8            — contents of AuthKey_D3D26YHSP9.p8 (Admin role, for cloud signing)
 #   GOOGLE_SERVICE_INFO_PLIST — contents of Drokpo/Resources/GoogleService-Info.plist
 env:
-  ASC_KEY_ID: K2J94LT633
+  ASC_KEY_ID: D3D26YHSP9
   ASC_ISSUER_ID: 740fa955-2ad0-4d4c-a447-c67f9c446977
   # Build 1 was uploaded manually before CI existed, so CI numbering starts at
   # run_number + 1. Raise this offset if the workflow is ever recreated and
