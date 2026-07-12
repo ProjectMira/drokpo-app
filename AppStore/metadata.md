@@ -60,4 +60,4 @@ tibetan,friends,tibet,himalayan,buddhist,community,chat,diaspora,bhutan,nepali,s
 - Age rating: 17+ (dating)
 - Privacy policy URL: https://drokpo-backend.web.app/privacy.html
 - Support URL: https://drokpo-backend.web.app
-- Copyright: © 2026 Drokpo
+- Copyright: © 2026 Tashi Tsering (individual developer account — update if the app is ever transferred to a company)
