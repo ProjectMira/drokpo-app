@@ -8,21 +8,21 @@ Drokpo
 
 ## Subtitle (30 chars max)
 
-Meet Tibetans near and far
+Make Tibetan friends worldwide
 
 ## Promotional text (170 chars max)
 
-Drokpo means "friend" — and this is where Tibetans meet: date, make friends, and stay rooted in community, wherever in the world you are.
+Drokpo means "friend" — and this is where Tibetans meet: make friends, find your community, and stay rooted wherever in the world you are.
 
 (Note: Apple rejects Tibetan script characters in en-US fields — this one shipped live already corrected; keep this field romanized too.)
 
 ## Description
 
-Drokpo means "friend" in Tibetan — and that's where everything good starts.
+Drokpo means "friend" in Tibetan — and that's exactly what this app is for.
 
 (Note: Apple rejects Tibetan script characters in the en-US description field, so the listing uses romanized text only.)
 
-Drokpo is a dating and friendship app made for the Tibetan community worldwide. Whether you're in Dharamshala or New York, Kathmandu or Zurich, Drokpo helps you find people who share your roots, your language, and your values.
+Drokpo is a friendship and community app made for Tibetans worldwide. Whether you're in Dharamshala or New York, Kathmandu or Zurich, Drokpo helps you find friends who share your roots, your language, and your values.
 
 WHY DROKPO
 
@@ -31,7 +31,7 @@ WHY DROKPO
 • Discover nearby and far — set your distance and age preferences, or reach across the world.
 • Likes that go both ways — get notified the moment someone likes you, then like back or send a message straight from their profile.
 • See the full picture — tap any profile to view every photo along with their region, languages, interests, occupation, and more.
-• Chat instantly — real-time messaging with your matches, with notifications for new matches and messages.
+• Chat instantly — real-time messaging with your connections, with notifications for new friends and messages.
 • Share what matters — your region, languages, interests, and socials, from gorshey to momo cooking.
 • Stay in control — block, report, unmatch, and delete your account (and all your data) any time.
 
@@ -39,23 +39,24 @@ Your location is only used to show you people within your chosen distance — it
 
 Drokpo is for adults 18 and over.
 
-Find your person. Find your people.
+Make friends. Find your people.
 
 ## Keywords (100 chars max)
 
-tibetan,dating,tibet,himalayan,buddhist,match,friends,chat,diaspora,bhutan,nepali,community,love
+tibetan,friends,tibet,himalayan,buddhist,community,chat,diaspora,bhutan,nepali,social,meet
 
 ## What's New (this build)
 
 • Get notified the moment someone likes you — tap the notification to see who
 • Like back or send a message straight from their profile
 • Tap any card in Discover to see the full profile
-• It's a match! now takes you straight into the chat
+• Making a new friend now takes you straight into the chat
+• Undo your last swipe
 • Fresh look: new icon and red/blue brand colors
 
 ## Listing details
 
-- Primary category: Lifestyle (alternative: Social Networking)
+- Primary category: Social Networking (secondary: Lifestyle) — friendship-first positioning
 - Age rating: 17+ (dating)
 - Privacy policy URL: https://drokpo-backend.web.app/privacy.html
 - Support URL: https://drokpo-backend.web.app
