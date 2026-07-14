@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// A sponsored card in the Discover deck. Mirrors CardView's layout so it
-/// feels native to the deck, but is clearly labelled and swaps the profile
-/// info for the ad's pitch plus a call-to-action.
+/// A sponsored card in the Discover deck — same banded layout as the other
+/// content cards (ad creatives are typically landscape): photo band on a
+/// dark backdrop, bottom fade carrying the pitch and CTA above the deck's
+/// overlaid buttons, clearly labelled.
 struct AdCardView: View {
     let ad: AdCard
     /// Open the ad link (same as swiping right); nil when not the top card.
@@ -13,28 +14,40 @@ struct AdCardView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .bottom) {
-                if let photo = photos.first {
-                    RemotePhotoView(photo: photo)
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .clipped()
-                } else {
+                if photos.first == nil {
                     LinearGradient(
                         colors: [Color.accentColor.opacity(0.85), .brandRed.opacity(0.75)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
+                } else {
+                    Color(white: 0.07)
+                }
+
+                if let photo = photos.first {
+                    VStack(spacing: 0) {
+                        PhotoBand(photo: photo)
+                            .frame(width: geometry.size.width)
+                            .padding(.top, 52) // clear of the Sponsored badge
+                        Spacer(minLength: 0)
+                    }
                 }
 
                 LinearGradient(
-                    colors: [.clear, .black.opacity(0.8)],
-                    startPoint: .center,
+                    stops: [
+                        .init(color: .clear, location: 0.30),
+                        .init(color: .black.opacity(0.55), location: 0.55),
+                        .init(color: .black.opacity(0.94), location: 1.0),
+                    ],
+                    startPoint: .top,
                     endPoint: .bottom
                 )
                 .allowsHitTesting(false)
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(ad.title ?? "—")
-                        .font(.title.bold())
+                        .font(.title2.bold())
+                        .lineLimit(3)
                     if let body = ad.body, !body.isEmpty {
                         Text(body)
                             .font(.subheadline)
@@ -55,7 +68,9 @@ struct AdCardView: View {
                     }
                 }
                 .foregroundStyle(.white)
-                .padding()
+                .padding(.horizontal)
+                // Keep the pitch and CTA above the overlaid pass/like buttons.
+                .padding(.bottom, SwipeActionButtons.deckClearance)
             }
             .overlay(alignment: .topLeading) {
                 Text("Sponsored")

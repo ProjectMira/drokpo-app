@@ -361,7 +361,9 @@ private struct SwipeableCommunityPostCard: View {
 }
 
 /// Tap-through detail for a news card: full summary, source attribution, and
-/// a button to open the source article in the in-app browser.
+/// a button to open the source article in the in-app browser. The image is a
+/// PhotoBand — a fixed-aspect, clipped container — because an unclipped
+/// scaled-to-fill photo once inflated this whole sheet wider than the screen.
 private struct NewsDetailSheet: View {
     let item: NewsCard
     let onReadFullStory: () -> Void
@@ -370,28 +372,43 @@ private struct NewsDetailSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 14) {
                     if let photo = item.displayPhotos.first {
-                        RemotePhotoView(photo: photo)
-                            .aspectRatio(16 / 10, contentMode: .fill)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 200)
+                        PhotoBand(photo: photo)
                             .clipShape(RoundedRectangle(cornerRadius: 14))
-                            .clipped()
                     }
-                    if let sourceName = item.sourceName, !sourceName.isEmpty {
-                        Text(sourceName.uppercased())
-                            .font(.caption.bold())
-                            .foregroundStyle(.secondary)
+                    HStack(spacing: 6) {
+                        if let sourceName = item.sourceName, !sourceName.isEmpty {
+                            Text(sourceName.uppercased())
+                                .font(.caption.bold())
+                                .foregroundStyle(.secondary)
+                        }
+                        if let relative = item.relativePublished {
+                            Text("· \(relative)")
+                                .font(.caption)
+                                .foregroundStyle(.tertiary)
+                        }
                     }
-                    Text(item.title ?? "—").font(.title2.bold())
+                    Text(item.title ?? "—")
+                        .font(.title2.bold())
+                        .fixedSize(horizontal: false, vertical: true)
                     Text(item.summary?.isEmpty == false ? item.summary! : item.gist ?? "")
                         .font(.body)
-                    Button("Read the full story") { onReadFullStory() }
-                        .buttonStyle(.borderedProminent)
-                        .frame(maxWidth: .infinity)
+                        .lineSpacing(5)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button {
+                        onReadFullStory()
+                    } label: {
+                        Text("Read the full story")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 46)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .padding(.top, 6)
                 }
-                .padding()
+                .padding(20)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .navigationTitle("News")
             .navigationBarTitleDisplayMode(.inline)

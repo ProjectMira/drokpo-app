@@ -1,13 +1,15 @@
 import SwiftUI
 
-/// A community post card in the Discover deck — same full-bleed swipe-card
-/// chrome as AdCardView/NewsCardView. Voting itself only happens in the
-/// expanded detail sheet (CommunityPostContentView), so a poll's option taps
-/// never fight the card's drag-to-swipe gesture.
+/// A community post card in the Discover deck — same banded layout as
+/// NewsCardView (post images are usually landscape too): photo band on a
+/// dark backdrop, bottom fade carrying the text above the deck's overlaid
+/// buttons. Voting itself only happens in the expanded detail sheet
+/// (CommunityPostContentView), so a poll's option taps never fight the
+/// card's drag-to-swipe gesture.
 struct CommunityPostCardView: View {
     let post: CommunityPostCard
-    /// Open the post's link (same as swiping right); nil when the post has no
-    /// link, or this isn't the top card.
+    /// Open the post's link (CTA); nil when the post has no link, or this
+    /// isn't the top card.
     var onOpen: (() -> Void)? = nil
     /// Show the full detail sheet (poll voting, full body); nil when not the top card.
     var onExpand: (() -> Void)? = nil
@@ -17,21 +19,32 @@ struct CommunityPostCardView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .bottom) {
-                if let photo = photos.first {
-                    RemotePhotoView(photo: photo)
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .clipped()
-                } else {
+                if photos.first == nil {
                     LinearGradient(
                         colors: [Color.accentColor.opacity(0.85), .brandRed.opacity(0.75)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
+                } else {
+                    Color(white: 0.07)
+                }
+
+                if let photo = photos.first {
+                    VStack(spacing: 0) {
+                        PhotoBand(photo: photo)
+                            .frame(width: geometry.size.width)
+                            .padding(.top, 52) // clear of the badge / chevron row
+                        Spacer(minLength: 0)
+                    }
                 }
 
                 LinearGradient(
-                    colors: [.clear, .black.opacity(0.8)],
-                    startPoint: .center,
+                    stops: [
+                        .init(color: .clear, location: 0.30),
+                        .init(color: .black.opacity(0.55), location: 0.55),
+                        .init(color: .black.opacity(0.94), location: 1.0),
+                    ],
+                    startPoint: .top,
                     endPoint: .bottom
                 )
                 .allowsHitTesting(false)
@@ -44,6 +57,7 @@ struct CommunityPostCardView: View {
                     }
                     Text(post.title ?? "—")
                         .font(.title2.bold())
+                        .lineLimit(3)
                     if post.kind == "event", let date = post.eventDate {
                         Label(date.formatted(date: .abbreviated, time: .shortened), systemImage: "calendar")
                             .font(.subheadline.bold())
@@ -60,7 +74,7 @@ struct CommunityPostCardView: View {
                                 .font(.subheadline)
                                 .opacity(0.9)
                             Spacer()
-                            if onOpen != nil {
+                            if onExpand != nil {
                                 // Right-swipe only ever RSVPs *in*; cancelling
                                 // happens in the detail sheet — say so.
                                 Text(post.myRsvp == true ? "You're going ✓ — tap for details" : "Swipe right to join")
@@ -86,7 +100,9 @@ struct CommunityPostCardView: View {
                     }
                 }
                 .foregroundStyle(.white)
-                .padding()
+                .padding(.horizontal)
+                // Keep every word above the overlaid pass/like buttons.
+                .padding(.bottom, SwipeActionButtons.deckClearance)
             }
             .overlay(alignment: .topLeading) {
                 Text("Community")

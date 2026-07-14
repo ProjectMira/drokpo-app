@@ -7,6 +7,11 @@ struct SwipeActionButtons: View {
     var onPass: () -> Void
     var onLike: () -> Void
 
+    /// Vertical space deck cards must keep free at the bottom so their text
+    /// never sits underneath these overlaid buttons (button diameter + the
+    /// deck's bottom padding + breathing room).
+    static let deckClearance: CGFloat = 112
+
     private var diameter: CGFloat {
         min(72, UIScreen.main.bounds.width * 0.17)
     }

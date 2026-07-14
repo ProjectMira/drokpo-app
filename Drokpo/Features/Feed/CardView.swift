@@ -34,9 +34,16 @@ struct CardView: View {
                         .onTapGesture { onExpand?() }
                 }
 
+                // Fade reaches from mid-card past the info block to the
+                // bottom, so the text and the deck's overlaid pass/like
+                // buttons both sit on dark.
                 LinearGradient(
-                    colors: [.clear, .black.opacity(0.75)],
-                    startPoint: .center,
+                    stops: [
+                        .init(color: .clear, location: 0.40),
+                        .init(color: .black.opacity(0.45), location: 0.62),
+                        .init(color: .black.opacity(0.88), location: 1.0),
+                    ],
+                    startPoint: .top,
                     endPoint: .bottom
                 )
                 .allowsHitTesting(false)
@@ -88,7 +95,9 @@ struct CardView: View {
                     }
                 }
                 .foregroundStyle(.white)
-                .padding()
+                .padding(.horizontal)
+                // Keep the name/bio above the overlaid pass/like buttons.
+                .padding(.bottom, SwipeActionButtons.deckClearance)
                 .contentShape(Rectangle())
                 .onTapGesture { onExpand?() }
             }

@@ -244,12 +244,8 @@ private struct SponsoredFeedRow: View {
                 .font(.caption2.bold())
                 .foregroundStyle(.secondary)
             if let photo = ad.displayPhotos.first {
-                RemotePhotoView(photo: photo)
-                    .aspectRatio(16 / 9, contentMode: .fill)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 150)
+                PhotoBand(photo: photo)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .clipped()
             }
             Text(ad.title ?? "—").font(.headline)
             if let body = ad.body, !body.isEmpty {

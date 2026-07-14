@@ -487,6 +487,29 @@ struct NewsCard: Codable, Equatable, Identifiable {
         guard let imageUrl else { return [] }
         return [Photo(storagePath: "news-image-\(newsId)", order: 0, url: imageUrl)]
     }
+
+    /// `publishedAt` arrives as full ISO 8601 (with or without offset) or a
+    /// bare date, depending on what the source article exposed.
+    var publishedDate: Date? {
+        guard let publishedAt else { return nil }
+        if let date = ISO8601DateFormatter().date(from: publishedAt) { return date }
+        for format in ["yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd"] {
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.dateFormat = format
+            if let date = formatter.date(from: publishedAt) { return date }
+        }
+        return nil
+    }
+
+    /// "2d ago"-style label for cards and the detail sheet; nil when the
+    /// published date is missing or unparseable.
+    var relativePublished: String? {
+        guard let date = publishedDate else { return nil }
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: date, relativeTo: Date())
+    }
 }
 
 /// GET /api/communities, GET /api/communities/mine

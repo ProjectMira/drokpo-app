@@ -89,3 +89,22 @@ struct RemotePhotoView: View {
         }
     }
 }
+
+/// A fixed-aspect image band whose photo can never affect surrounding layout.
+///
+/// RemotePhotoView renders its image with `scaledToFill`, which overflows its
+/// proposed bounds; unclipped, that overflow inflates the layout around it
+/// (it once pushed the whole news detail sheet wider than the screen). This
+/// container owns the geometry — the band is always `aspect` at the offered
+/// width — and clips the photo to it.
+struct PhotoBand: View {
+    let photo: Photo?
+    var aspect: CGFloat = 16 / 9
+
+    var body: some View {
+        Color.clear
+            .aspectRatio(aspect, contentMode: .fit)
+            .overlay { RemotePhotoView(photo: photo) }
+            .clipped()
+    }
+}

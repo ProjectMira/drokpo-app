@@ -18,12 +18,10 @@ struct CommunityPostContentView: View {
         VStack(alignment: .leading, spacing: 10) {
             header
             if let photo = post.displayPhotos.first {
-                RemotePhotoView(photo: photo)
-                    .aspectRatio(16 / 10, contentMode: .fill)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 160)
+                // Fixed-aspect clipped band — an unclipped fill image inflates
+                // the surrounding layout (see PhotoBand).
+                PhotoBand(photo: photo)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .clipped()
             }
             if let title = post.title, !title.isEmpty {
                 Text(title).font(.headline)
