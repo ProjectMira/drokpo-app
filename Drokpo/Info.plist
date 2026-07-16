@@ -26,6 +26,12 @@
 				<string>$(GOOGLE_REVERSED_CLIENT_ID)</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>drokpo</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
@@ -38,8 +44,6 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Drokpo uses your location to show you people nearby.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Drokpo uses the microphone to record voice comments and voice messages.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Drokpo needs access to your photos so you can add them to your profile.</string>
 	<key>UILaunchScreen</key>

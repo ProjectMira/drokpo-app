@@ -17,10 +17,25 @@ enum ProfileDetailContext {
 struct ProfileDetailView: View {
     let card: FeedCard
     var context: ProfileDetailContext = .plain
+    /// Caller-owned report/block — Discover passes these so the card also
+    /// leaves the deck. When nil, the view calls the safety APIs itself
+    /// (Likes list, chat header, shared links).
+    var onReport: ((String) -> Void)? = nil
+    var onBlock: (() -> Void)? = nil
 
+    @Environment(SessionStore.self) private var session
+    @Environment(\.dismiss) private var dismiss
     @State private var localMatchId: String?
     @State private var isLiking = false
     @State private var showMatchAlert = false
+    @State private var showBlockConfirm = false
+    @State private var showReportReasons = false
+    @State private var errorMessage: String?
+
+    /// Own-profile preview (ProfileView) — no reporting/blocking yourself.
+    private var isSelf: Bool {
+        card.uid == session.uid || card.uid == "me"
+    }
 
     var body: some View {
         ScrollView {
@@ -113,11 +128,94 @@ struct ProfileDetailView: View {
         .navigationTitle(card.displayName ?? "Profile")
         .navigationBarTitleDisplayMode(.inline)
         .safeAreaInset(edge: .bottom) { actionBar }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                ShareButton(
+                    content: card.isCommunity
+                        ? .community(cid: card.uid, name: card.displayName)
+                        : .profile(card)
+                )
+            }
+            if !isSelf {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button("Report", role: .destructive) { showReportReasons = true }
+                        Button("Block", role: .destructive) { showBlockConfirm = true }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                    .accessibilityLabel("Report or block")
+                }
+            }
+        }
+        .confirmationDialog(
+            "Why are you reporting this profile?",
+            isPresented: $showReportReasons,
+            titleVisibility: .visible
+        ) {
+            ForEach(Vocabulary.reportReasons, id: \.self) { reason in
+                Button(reason, role: .destructive) { report(reason: reason) }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+        .confirmationDialog(
+            "Block \(card.displayName ?? "this member")?",
+            isPresented: $showBlockConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Block", role: .destructive) { block() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("You won't see each other anywhere in Drokpo.")
+        }
         .alert("It's a match!", isPresented: $showMatchAlert) {
             Button("Say hi") { openThread() }
             Button("Later", role: .cancel) {}
         } message: {
             Text("You and \(card.displayName ?? "they") liked each other.")
+        }
+        .alert("Something went wrong", isPresented: .init(
+            get: { errorMessage != nil },
+            set: { if !$0 { errorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorMessage ?? "")
+        }
+    }
+
+    /// Report through the caller when it owns cleanup (Discover removes the
+    /// card from the deck); otherwise call the API directly.
+    private func report(reason: String) {
+        if let onReport {
+            onReport(reason)
+            return
+        }
+        Task {
+            do {
+                let _: EmptyResponse = try await APIClient.shared.post(
+                    "/api/reports",
+                    body: ReportIn(reportedUid: card.uid, reason: reason, note: "")
+                )
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func block() {
+        if let onBlock {
+            onBlock()
+            return
+        }
+        Task {
+            do {
+                let _: EmptyResponse = try await APIClient.shared.post("/api/blocks/\(card.uid)")
+                BlockStore.shared.record(uid: card.uid, displayName: card.displayName)
+                dismiss()
+            } catch {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 

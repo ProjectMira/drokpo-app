@@ -83,6 +83,12 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLSchemes:
               - $(GOOGLE_REVERSED_CLIENT_ID)
+          # Shared-content deep links (drokpo://s/{type}/{id}) — share.html's
+          # "Open in Drokpo" button. No signing capability needed, unlike
+          # universal links (those need Associated Domains on the App ID +
+          # a regenerated CI provisioning profile before they can ship).
+          - CFBundleURLSchemes:
+              - drokpo
     entitlements:
       path: Drokpo/Drokpo.entitlements
       properties:

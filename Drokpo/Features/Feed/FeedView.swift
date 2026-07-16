@@ -7,6 +7,8 @@ struct FeedView: View {
     @State private var expandedNews: NewsCard?
     @State private var expandedPost: CommunityPostCard?
     @State private var showCommunityBrowse = false
+    /// The card being shared from the deck's share button.
+    @State private var shareContent: ShareableContent?
     /// Set instead of model.urlToOpen while a detail sheet is up — swapping
     /// two sheets in one transaction is flaky; the Safari sheet presents from
     /// the detail sheet's onDismiss instead.
@@ -33,18 +35,18 @@ struct FeedView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .overlay(alignment: .topLeading) { communityBrowseButton }
             .navigationTitle("Discover")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                // Community browsing lives in the nav bar, not floating over
+                // the cards (undo moved down into the deck's button row).
+                ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        model.undoLastSwipe()
+                        showCommunityBrowse = true
                     } label: {
-                        Image(systemName: "arrow.uturn.backward.circle")
+                        Image(systemName: "person.3.fill")
                     }
-                    .disabled(!model.canUndo)
-                    .accessibilityLabel("Undo last swipe")
+                    .accessibilityLabel("Browse communities")
                 }
             }
             .task { await model.loadInitial() }
@@ -75,7 +77,17 @@ struct FeedView: View {
                                 expandedCard = nil
                                 model.swipe(card, action: .pass)
                             }
-                        )
+                        ),
+                        // Caller-owned safety actions: the card must also
+                        // leave the deck, which only the model can do.
+                        onReport: { reason in
+                            expandedCard = nil
+                            model.reportAndRemove(card, reason: reason)
+                        },
+                        onBlock: {
+                            expandedCard = nil
+                            model.blockAndRemove(card)
+                        }
                     )
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
@@ -84,6 +96,9 @@ struct FeedView: View {
                     }
                 }
                 .presentationDetents([.large])
+            }
+            .sheet(item: $shareContent) { content in
+                ShareSheetView(content: content)
             }
             .sheet(item: $model.urlToOpen) { url in
                 SafariView(url: url)
@@ -155,21 +170,6 @@ struct FeedView: View {
         }
     }
 
-    private var communityBrowseButton: some View {
-        Button {
-            showCommunityBrowse = true
-        } label: {
-            Image(systemName: "person.3.fill")
-                .font(.headline)
-                .foregroundStyle(.white)
-                .padding(10)
-                .background(Circle().fill(.black.opacity(0.35)))
-        }
-        .padding(.leading, 16)
-        .padding(.top, 8)
-        .accessibilityLabel("Browse communities")
-    }
-
     /// Presents a link queued by a detail sheet once that sheet is fully
     /// dismissed (sheet-over-sheet swaps in one transaction are unreliable).
     private func presentPendingURL() {
@@ -191,10 +191,29 @@ struct FeedView: View {
         }
         .overlay(alignment: .bottom) {
             SwipeActionButtons(
+                onUndo: { model.undoLastSwipe() },
+                undoDisabled: !model.canUndo,
                 onPass: { topSwipe(liked: false) },
-                onLike: { topSwipe(liked: true) }
+                onLike: { topSwipe(liked: true) },
+                onShare: { shareContent = topShareContent },
+                shareDisabled: topShareContent == nil
             )
             .padding(.bottom, 20)
+        }
+    }
+
+    /// What the deck's share button would share — the top card, mapped to a
+    /// shareable payload. Ads aren't shareable (nil disables the button).
+    private var topShareContent: ShareableContent? {
+        switch model.deck.first {
+        case .profile(let card):
+            card.isCommunity ? .community(cid: card.uid, name: card.displayName) : .profile(card)
+        case .news(let item):
+            .news(item)
+        case .post(let post):
+            .post(post)
+        case .ad, nil:
+            nil
         }
     }
 
@@ -405,67 +424,6 @@ private struct SwipeableCommunityPostCard: View {
                     : nil,
                 onExpand: isTop ? onExpand : nil
             )
-        }
-    }
-}
-
-/// Tap-through detail for a news card: full summary, source attribution, and
-/// a button to open the source article in the in-app browser. The image is a
-/// PhotoBand — a fixed-aspect, clipped container — because an unclipped
-/// scaled-to-fill photo once inflated this whole sheet wider than the screen.
-private struct NewsDetailSheet: View {
-    let item: NewsCard
-    let onReadFullStory: () -> Void
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    if let photo = item.displayPhotos.first {
-                        PhotoBand(photo: photo)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
-                    }
-                    HStack(spacing: 6) {
-                        if let sourceName = item.sourceName, !sourceName.isEmpty {
-                            Text(sourceName.uppercased())
-                                .font(.caption.bold())
-                                .foregroundStyle(.secondary)
-                        }
-                        if let relative = item.relativePublished {
-                            Text("· \(relative)")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-                    Text(item.title ?? "—")
-                        .font(.title2.bold())
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(item.summary?.isEmpty == false ? item.summary! : item.gist ?? "")
-                        .font(.body)
-                        .lineSpacing(5)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Button {
-                        onReadFullStory()
-                    } label: {
-                        Text("Read the full story")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 46)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .padding(.top, 6)
-                }
-                .padding(20)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .navigationTitle("News")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
-                }
-            }
         }
     }
 }

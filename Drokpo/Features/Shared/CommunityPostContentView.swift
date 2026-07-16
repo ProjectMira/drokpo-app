@@ -87,6 +87,12 @@ struct CommunityPostContentView: View {
                 .clipShape(Circle())
             Text(post.communityName ?? "Community")
                 .font(.subheadline.bold())
+            // Signal the header is a link to the community's page.
+            if post.communityId != nil {
+                Image(systemName: "chevron.right")
+                    .font(.caption2.bold())
+                    .foregroundStyle(.secondary)
+            }
             Spacer()
         }
         .contentShape(Rectangle())
@@ -170,6 +176,9 @@ struct CommunityPostDetailSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    ShareButton(content: .post(post))
                 }
             }
             .sheet(isPresented: $showComments) {

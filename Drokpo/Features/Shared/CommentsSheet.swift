@@ -29,6 +29,41 @@ final class CommentsModel {
         return comment.authorUid == myUid || myUid == postOwnerCid
     }
 
+    func isMine(_ comment: CommentCard) -> Bool {
+        myUid != nil && comment.authorUid == myUid
+    }
+
+    @MainActor
+    func reportAuthor(_ comment: CommentCard, reason: String) async {
+        guard let authorUid = comment.authorUid else { return }
+        do {
+            let _: EmptyResponse = try await APIClient.shared.post(
+                "/api/reports",
+                body: ReportIn(
+                    reportedUid: authorUid,
+                    reason: reason,
+                    note: "Comment \(comment.commentId) on post \(postId)"
+                )
+            )
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Blocks the comment's author, then reloads — the backend drops blocked
+    /// authors' comments from the list, so their content disappears too.
+    @MainActor
+    func blockAuthor(_ comment: CommentCard) async {
+        guard let authorUid = comment.authorUid else { return }
+        do {
+            let _: EmptyResponse = try await APIClient.shared.post("/api/blocks/\(authorUid)")
+            BlockStore.shared.record(uid: authorUid, displayName: comment.authorName)
+            await load()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     @MainActor
     func load() async {
         isLoading = comments.isEmpty
@@ -191,6 +226,10 @@ struct CommentsSheet: View {
 
     @State private var model: CommentsModel
     @State private var replyTarget: CommentCard?
+    /// Long-pressed comment awaiting a report/block choice, then (if
+    /// "Report…" was picked) a reason.
+    @State private var safetyTarget: CommentCard?
+    @State private var reportTarget: CommentCard?
 
     init(post: CommunityPostCard) {
         self.post = post
@@ -233,6 +272,39 @@ struct CommentsSheet: View {
             } message: {
                 Text(model.errorMessage ?? "")
             }
+            .confirmationDialog(
+                "Comment by \(safetyTarget?.authorName ?? "member")",
+                isPresented: .init(
+                    get: { safetyTarget != nil },
+                    set: { if !$0 { safetyTarget = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                Button("Report…", role: .destructive) { reportTarget = safetyTarget }
+                Button("Block \(safetyTarget?.authorName ?? "member")", role: .destructive) {
+                    if let target = safetyTarget {
+                        Task { await model.blockAuthor(target) }
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            }
+            .confirmationDialog(
+                "Why are you reporting this comment?",
+                isPresented: .init(
+                    get: { reportTarget != nil },
+                    set: { if !$0 { reportTarget = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                ForEach(Vocabulary.reportReasons, id: \.self) { reason in
+                    Button(reason, role: .destructive) {
+                        if let target = reportTarget {
+                            Task { await model.reportAuthor(target, reason: reason) }
+                        }
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            }
         }
     }
 
@@ -267,11 +339,13 @@ struct CommentsSheet: View {
             onToggleReplies: { Task { await model.toggleReplies(for: comment.id) } },
             onVote: { value in Task { await model.vote(comment, value: value) } },
             onDelete: { Task { await model.delete(comment) } },
+            onSafety: model.isMine(comment) ? nil : { safetyTarget = comment },
             replyActions: { reply in
                 ReplyRowActions(
                     canDelete: model.canDelete(reply),
                     onVote: { value in Task { await model.vote(reply, value: value) } },
-                    onDelete: { Task { await model.delete(reply) } }
+                    onDelete: { Task { await model.delete(reply) } },
+                    onSafety: model.isMine(reply) ? nil : { safetyTarget = reply }
                 )
             }
         )
@@ -298,6 +372,8 @@ private struct ReplyRowActions {
     let canDelete: Bool
     let onVote: (String?) -> Void
     let onDelete: () -> Void
+    /// Report/block the reply's author; nil for the viewer's own replies.
+    let onSafety: (() -> Void)?
 }
 
 private struct CommentRow: View {
@@ -309,13 +385,23 @@ private struct CommentRow: View {
     let onToggleReplies: () -> Void
     let onVote: (String?) -> Void
     let onDelete: () -> Void
+    /// Report/block the comment's author; nil for the viewer's own comments.
+    let onSafety: (() -> Void)?
     let replyActions: (CommentCard) -> ReplyRowActions
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            CommentHeader(comment: comment)
-            CommentBody(comment: comment)
-                .padding(.leading, 40)
+            Group {
+                CommentHeader(comment: comment)
+                CommentBody(comment: comment)
+                    .padding(.leading, 40)
+            }
+            .contentShape(Rectangle())
+            .contextMenu {
+                if let onSafety {
+                    Button("Report or block…", systemImage: "exclamationmark.bubble", role: .destructive, action: onSafety)
+                }
+            }
             actionsRow
                 .padding(.leading, 40)
             repliesDisclosure
@@ -324,6 +410,10 @@ private struct CommentRow: View {
         .swipeActions(edge: .trailing) {
             if canDelete {
                 Button("Delete", role: .destructive) { onDelete() }
+            }
+            if let onSafety {
+                Button("Report", action: onSafety)
+                    .tint(.orange)
             }
         }
     }
@@ -347,7 +437,13 @@ private struct CommentRow: View {
                 VStack(alignment: .leading, spacing: 10) {
                     ForEach(replies) { reply in
                         let actions = replyActions(reply)
-                        ReplyRow(reply: reply, canDelete: actions.canDelete, onVote: actions.onVote, onDelete: actions.onDelete)
+                        ReplyRow(
+                            reply: reply,
+                            canDelete: actions.canDelete,
+                            onVote: actions.onVote,
+                            onDelete: actions.onDelete,
+                            onSafety: actions.onSafety
+                        )
                     }
                 }
                 .padding(.leading, 40)
@@ -374,12 +470,21 @@ private struct ReplyRow: View {
     let canDelete: Bool
     let onVote: (String?) -> Void
     let onDelete: () -> Void
+    let onSafety: (() -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            CommentHeader(comment: reply, avatarSize: 26)
-            CommentBody(comment: reply)
-                .padding(.leading, 34)
+            Group {
+                CommentHeader(comment: reply, avatarSize: 26)
+                CommentBody(comment: reply)
+                    .padding(.leading, 34)
+            }
+            .contentShape(Rectangle())
+            .contextMenu {
+                if let onSafety {
+                    Button("Report or block…", systemImage: "exclamationmark.bubble", role: .destructive, action: onSafety)
+                }
+            }
             VoteButtons(myVote: reply.myVote, likeCount: reply.likeCount ?? 0, dislikeCount: reply.dislikeCount ?? 0, onVote: onVote)
                 .padding(.leading, 34)
         }

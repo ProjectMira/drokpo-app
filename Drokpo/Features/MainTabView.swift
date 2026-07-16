@@ -14,6 +14,8 @@ struct MainTabView: View {
     @State private var chats = ChatStore()
     @State private var router = DeepLinkRouter.shared
     @State private var selection: Tab = .discover
+    /// A shared-content link being shown (chat-bubble tap, drokpo:// URL).
+    @State private var sharedDestination: ShareDestination?
 
     private var isCommunity: Bool { session.state == .activeCommunity }
     private var myCid: String { session.myCommunity?.uid ?? session.uid ?? "" }
@@ -54,23 +56,35 @@ struct MainTabView: View {
         .onAppear {
             if let uid = session.uid { chats.start(uid: uid) }
             routeDeepLink()
+            consumePendingShare()
         }
         .onChange(of: router.pendingMatchId) { routeDeepLink() }
         .onChange(of: router.pendingType) { routeDeepLink() }
+        .onChange(of: router.pendingShare) { consumePendingShare() }
         .onDisappear { chats.stop() }
+        .sheet(item: $sharedDestination) { destination in
+            ShareDestinationView(destination: destination)
+        }
     }
 
     /// A "match"/"message" push-tap lands on the Chats tab; ChatsView consumes
     /// the router to decide whether to open the thread, so don't clear it
-    /// here. A "like" push has no thread to open, so land on Likes and
-    /// consume it immediately.
+    /// here. A "like" push has no thread to open, so land on Likes (flagging
+    /// LikesView to open its "Liked you" segment) and consume it immediately.
     private func routeDeepLink() {
         guard router.pendingMatchId != nil || router.pendingType != nil else { return }
         if router.pendingType == "like" {
             selection = .likes
+            router.focusLikedYou = true
             router.clear()
         } else {
             selection = .chats
         }
+    }
+
+    private func consumePendingShare() {
+        guard let destination = router.pendingShare else { return }
+        router.pendingShare = nil
+        sharedDestination = destination
     }
 }

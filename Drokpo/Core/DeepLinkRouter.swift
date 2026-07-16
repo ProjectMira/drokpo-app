@@ -11,6 +11,13 @@ final class DeepLinkRouter {
 
     var pendingMatchId: String?
     var pendingType: String?
+    /// A shared-content link waiting to be shown — set by a chat-bubble tap
+    /// or an incoming drokpo://s/... URL, consumed by MainTabView (which
+    /// presents ShareDestinationView and clears it).
+    var pendingShare: ShareDestination?
+    /// Set when a "like" push lands, consumed by LikesView: open on the
+    /// "Liked you" segment instead of the default "You liked".
+    var focusLikedYou = false
 
     func handle(type: String?, matchId: String?) {
         pendingType = type

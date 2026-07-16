@@ -16,8 +16,11 @@ struct CommunityPageView: View {
     var ownerMode = false
 
     @Environment(SessionStore.self) private var session
+    @Environment(\.dismiss) private var dismiss
 
     @State private var visitorCommunity: CommunityProfile?
+    @State private var showReportReasons = false
+    @State private var showBlockConfirm = false
     @State private var posts: [CommunityPostCard] = []
     @State private var isLoadingHeader = true
     @State private var isLoadingPosts = true
@@ -83,6 +86,9 @@ struct CommunityPageView: View {
         .navigationTitle(community?.name ?? "Community")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                ShareButton(content: .community(cid: cid, name: community?.name))
+            }
             if ownerMode {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -91,7 +97,37 @@ struct CommunityPageView: View {
                         Image(systemName: "plus")
                     }
                 }
+            } else {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Button("Report", role: .destructive) { showReportReasons = true }
+                        Button("Block", role: .destructive) { showBlockConfirm = true }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                    .accessibilityLabel("Report or block")
+                }
             }
+        }
+        .confirmationDialog(
+            "Why are you reporting this community?",
+            isPresented: $showReportReasons,
+            titleVisibility: .visible
+        ) {
+            ForEach(Vocabulary.reportReasons, id: \.self) { reason in
+                Button(reason, role: .destructive) { Task { await report(reason: reason) } }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+        .confirmationDialog(
+            "Block \(community?.name ?? "this community")?",
+            isPresented: $showBlockConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("Block", role: .destructive) { Task { await block() } }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("You won't see this community or its posts.")
         }
         .overlay { if isLoadingHeader && community == nil { ProgressView() } }
         .refreshable { await load() }
@@ -307,6 +343,27 @@ struct CommunityPageView: View {
         guard let url = pendingURL else { return }
         pendingURL = nil
         urlToOpen = url
+    }
+
+    private func report(reason: String) async {
+        do {
+            let _: EmptyResponse = try await APIClient.shared.post(
+                "/api/reports",
+                body: ReportIn(reportedUid: cid, reason: reason, note: "")
+            )
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func block() async {
+        do {
+            let _: EmptyResponse = try await APIClient.shared.post("/api/blocks/\(cid)")
+            BlockStore.shared.record(uid: cid, displayName: community?.name)
+            dismiss()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     private func toggleJoin() async {

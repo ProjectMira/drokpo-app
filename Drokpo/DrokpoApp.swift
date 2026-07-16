@@ -44,6 +44,13 @@ struct DrokpoApp: App {
                 .environment(session)
                 .preferredColorScheme(appearance.colorScheme)
                 .onOpenURL { url in
+                    // Shared-content links (drokpo://s/... from share.html's
+                    // "Open in Drokpo", or a hosted /s/... universal link)
+                    // route to MainTabView via the DeepLinkRouter.
+                    if let destination = ShareDestination.parse(url: url) {
+                        DeepLinkRouter.shared.pendingShare = destination
+                        return
+                    }
                     // Phone-auth's reCAPTCHA fallback and Google sign-in share
                     // the same URL scheme (GOOGLE_REVERSED_CLIENT_ID) — give
                     // Firebase Auth first refusal so its verification flow

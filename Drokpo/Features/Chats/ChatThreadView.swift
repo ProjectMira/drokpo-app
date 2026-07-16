@@ -177,6 +177,34 @@ struct ChatThreadView: View {
                     RoundedRectangle(cornerRadius: 18)
                         .fill(isMine ? AnyShapeStyle(.tint) : AnyShapeStyle(.quaternary))
                 )
+        } else if let shared = SharedLinkMessage(text: message.text) {
+            // A share-sheet message ("<title>\n<drokpo share link>") renders
+            // as a tappable card that opens the shared content in-app.
+            Button {
+                DeepLinkRouter.shared.pendingShare = shared.destination
+            } label: {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("Shared \(shared.kindLabel)", systemImage: shared.icon)
+                        .font(.caption.bold())
+                        .opacity(0.85)
+                    if let caption = shared.caption {
+                        Text(caption)
+                            .font(.body.bold())
+                            .multilineTextAlignment(.leading)
+                    }
+                    Text("Tap to view")
+                        .font(.caption2)
+                        .opacity(0.7)
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(isMine ? AnyShapeStyle(.tint) : AnyShapeStyle(.quaternary))
+                )
+                .foregroundStyle(isMine ? .white : .primary)
+            }
+            .buttonStyle(.plain)
         } else {
             Text(message.text)
                 .padding(.horizontal, 14)

@@ -1,9 +1,10 @@
 import SwiftUI
 
 struct LikesView: View {
+    /// "You liked" sits left and is the default; "Liked you" moved right.
     private enum Direction: String, CaseIterable, Identifiable {
-        case received = "Liked you"
         case given = "You liked"
+        case received = "Liked you"
 
         var id: String { rawValue }
     }
@@ -40,8 +41,9 @@ struct LikesView: View {
         }
     }
 
-    @State private var direction: Direction = .received
+    @State private var direction: Direction = .given
     @State private var givenFilter: GivenFilter = .all
+    @State private var router = DeepLinkRouter.shared
     @State private var received: [SwipeEntry] = []
     @State private var given: [SwipeEntry] = []
     @State private var likedContent: [LikedContent] = []
@@ -88,7 +90,11 @@ struct LikesView: View {
                 }
             }
             .navigationTitle("Likes")
-            .onAppear { Task { await load() } }
+            .onAppear {
+                consumeLikePush()
+                Task { await load() }
+            }
+            .onChange(of: router.focusLikedYou) { consumeLikePush() }
             .refreshable { await load() }
             .sheet(item: $urlToOpen) { url in
                 SafariView(url: url)
@@ -233,6 +239,14 @@ struct LikesView: View {
         }
         .frame(maxHeight: .infinity)
         .padding()
+    }
+
+    /// A "like" push should land on the "Liked you" segment (the default is
+    /// "You liked") — MainTabView flags it on the router, consumed here.
+    private func consumeLikePush() {
+        guard router.focusLikedYou else { return }
+        router.focusLikedYou = false
+        direction = .received
     }
 
     /// Only shows the full-screen spinner on the very first load; later calls
@@ -399,6 +413,11 @@ private struct LikedPostDetailView: View {
         }
         .navigationTitle(post.communityName ?? "Saved post")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                ShareButton(content: .post(post))
+            }
+        }
         .sheet(isPresented: $showComments) {
             CommentsSheet(post: post)
                 .presentationDetents([.medium, .large])
