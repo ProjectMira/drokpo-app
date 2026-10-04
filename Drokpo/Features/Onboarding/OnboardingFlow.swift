@@ -193,8 +193,6 @@ private struct DetailsStep: View {
 
 private struct LocationStep: View {
     @Bindable var model: OnboardingModel
-    @State private var fetcher = LocationFetcher()
-    @State private var isFetching = false
 
     var body: some View {
         VStack(spacing: 16) {
@@ -203,7 +201,7 @@ private struct LocationStep: View {
                 .foregroundStyle(.tint)
             Text("Share your location")
                 .font(.title2.bold())
-            Text("We use it to show you people nearby. If you skip this, we'll use the center of your region instead.")
+            Text("Drokpo uses your location to show you people nearby. When you tap Continue, iOS will ask whether to share it. If you don't, we'll use the center of your region instead.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -212,22 +210,6 @@ private struct LocationStep: View {
             if model.location != nil {
                 Label("Location saved", systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.tint)
-            } else {
-                Button {
-                    isFetching = true
-                    Task {
-                        model.location = await fetcher.requestLocation()
-                        isFetching = false
-                    }
-                } label: {
-                    if isFetching {
-                        ProgressView()
-                    } else {
-                        Text("Allow location access")
-                    }
-                }
-                .buttonStyle(.bordered)
-                .disabled(isFetching)
             }
         }
     }

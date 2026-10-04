@@ -28,7 +28,7 @@ final class AudioRecorder {
         Task { @MainActor in
             let granted = await AVAudioApplication.requestRecordPermission()
             guard granted else {
-                state = .failed("Drokpo needs microphone access to record. Enable it in Settings.")
+                state = .failed("Microphone access is off. You can turn it on in Settings.")
                 return
             }
             beginRecording()
@@ -106,6 +106,12 @@ final class AudioRecorder {
         state = .idle
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         return (recorder.url, seconds)
+    }
+
+    /// Clears a `.failed` state so the composer shows its normal input again —
+    /// a denied mic permission must never lock the user out of typing.
+    func dismissFailure() {
+        if case .failed = state { state = .idle }
     }
 
     /// Stops and discards the recording — used when the user cancels.

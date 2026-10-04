@@ -316,6 +316,8 @@ struct EditProfileView: View {
     @State private var isLocating = false
     @State private var locationStatus: String?
     @State private var updatedLocation: GeoLocation?
+    /// Location permission is off — the footer offers a Settings shortcut.
+    @State private var locationDenied = false
     @State private var errorMessage: String?
 
     private let onSaved: () async -> Void
@@ -403,7 +405,12 @@ struct EditProfileView: View {
                 } header: {
                     Text("Location")
                 } footer: {
-                    Text(locationStatus ?? "Your location decides who shows up in your feed. Update it after you move or travel.")
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(locationStatus ?? "Your location decides who shows up in your feed. Update it after you move or travel.")
+                        if locationDenied, let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                            Link("Open Settings", destination: settingsURL)
+                        }
+                    }
                 }
                 Section {
                     socialField("Instagram", text: $instagram)
@@ -496,9 +503,13 @@ struct EditProfileView: View {
         let fetcher = LocationFetcher()
         if let location = await fetcher.requestLocation() {
             updatedLocation = location
+            locationDenied = false
             locationStatus = "Location updated — save to apply."
+        } else if fetcher.isDenied {
+            locationDenied = true
+            locationStatus = "Location access is off for Drokpo. You can turn it on in Settings — until then your feed uses your saved location."
         } else {
-            locationStatus = "Couldn't get your location. Check location permissions in Settings."
+            locationStatus = "Couldn't get your location right now. Try again in a moment."
         }
     }
 

@@ -617,7 +617,7 @@ private struct CommentComposerBar: View {
         case .recording(let elapsed):
             recordingContent(elapsed: elapsed)
         case .failed(let message):
-            Text(message).font(.caption).foregroundStyle(.red)
+            RecorderFailureRow(message: message) { recorder.dismissFailure() }
         }
     }
 

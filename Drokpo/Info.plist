@@ -44,8 +44,10 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Drokpo uses your location to show you people nearby.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Drokpo uses the microphone to record voice messages and voice comments.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Drokpo needs access to your photos so you can add them to your profile.</string>
+	<string>Drokpo lets you choose photos to add to your profile, posts, and chats.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>

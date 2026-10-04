@@ -31,6 +31,7 @@ final class OnboardingModel {
 
     // Location
     var location: GeoLocation?
+    private let locationFetcher = LocationFetcher()
 
     // Photos
     var pickedImages: [UIImage] = []
@@ -78,6 +79,15 @@ final class OnboardingModel {
         guard canAdvance else { return }
         switch step {
         case .location:
+            // Continue leads straight into the system location dialog — the
+            // Allow/Don't Allow choice must live there, not on a button of our
+            // own (App Review guideline 5.1.1(iv) rejected a custom "Allow"
+            // button on this step). Denial falls back to region coordinates.
+            if location == nil {
+                isSubmitting = true
+                location = await locationFetcher.requestLocation()
+                isSubmitting = false
+            }
             await createProfile()
         case .photos:
             await uploadPhotosAndComplete()
@@ -147,6 +157,12 @@ final class OnboardingModel {
 final class LocationFetcher: NSObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
     private var continuation: CheckedContinuation<GeoLocation?, Never>?
+
+    /// The user (or a device restriction) has turned location off for the app;
+    /// only Settings can change it from here.
+    var isDenied: Bool {
+        [.denied, .restricted].contains(manager.authorizationStatus)
+    }
 
     func requestLocation() async -> GeoLocation? {
         await withCheckedContinuation { continuation in
