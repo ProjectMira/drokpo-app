@@ -37,7 +37,7 @@ targets:
         # shipped as literal "1.0" (the old Info.plist ignored this setting) —
         # TestFlight won't offer a lower version string as an update, and the
         # App Store version record is "1.0".
-        MARKETING_VERSION: "1.0"
+        MARKETING_VERSION: "1.1"
         # Local builds only — CI overrides this with run_number + offset
         # (testflight.yml), which is what App Store Connect actually sees.
         CURRENT_PROJECT_VERSION: 32
