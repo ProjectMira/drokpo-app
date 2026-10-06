@@ -32,4 +32,4 @@ A simple Tinder-style iOS app for the Tibetan community, built with SwiftUI on t
 
 ## Status
 
-Sign in (Apple/Google) → onboard (profile incl. required Instagram handle + photos) → swipe feed → likes given/received → real-time chat with matches → profile editing with settings (sign out, delete account), plus report/block.
+Sign in (Apple/Google) → onboard (profile incl. optional Instagram handle + photos) → swipe feed → likes given/received → real-time chat with matches → profile editing with settings (sign out, delete account), plus report/block.

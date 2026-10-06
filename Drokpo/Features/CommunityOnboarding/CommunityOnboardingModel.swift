@@ -137,8 +137,7 @@ final class CommunityOnboardingModel {
 
     /// Second pass over the address step after the community already exists:
     /// persist whatever the user changed on the earlier steps via PATCH.
-    /// Optional fields go up as "" when emptied (the backend clears them);
-    /// instagram stays omit-when-empty — the backend never allows a blank.
+    /// Optional fields go up as "" when emptied (the backend clears them).
     @MainActor
     private func updateCommunity() async {
         isSubmitting = true
@@ -163,7 +162,7 @@ final class CommunityOnboardingModel {
                 postalCode: postalCode.trimmed
             ),
             socials: Socials(
-                instagram: nonEmpty(instagram),
+                instagram: instagram.trimmed,
                 youtube: youtube.trimmed,
                 tiktok: tiktok.trimmed,
                 facebook: facebook.trimmed

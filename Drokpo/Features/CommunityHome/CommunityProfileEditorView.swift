@@ -279,7 +279,7 @@ struct CommunityProfileEditorView: View {
         isSaving = true
         defer { isSaving = false }
         // Clearable optionals go up as "" when emptied — the backend deletes
-        // the stored value. Never-clearable fields (email, instagram, contact
+        // the stored value. Never-clearable fields (email, contact
         // name, city, country) stay omit-when-empty, i.e. "unchanged".
         let body = CommunityUpdate(
             name: trimmed(name),
@@ -301,7 +301,7 @@ struct CommunityProfileEditorView: View {
                 postalCode: trimmed(postalCode)
             ),
             socials: Socials(
-                instagram: nonEmpty(instagram),
+                instagram: trimmed(instagram),
                 youtube: trimmed(youtube),
                 tiktok: trimmed(tiktok),
                 facebook: trimmed(facebook)

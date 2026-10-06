@@ -15,8 +15,7 @@ struct Preferences: Codable, Equatable {
     var distanceKm: Int = 50
 }
 
-/// Social handles. Instagram is the one handle every profile must have; the
-/// backend rejects onboarding without it and never lets it be cleared.
+/// Social handles. All optional — plenty of members have no Instagram.
 struct Socials: Codable, Equatable {
     var instagram: String?
     var youtube: String?

@@ -140,7 +140,7 @@ private struct SocialsStep: View {
             } header: {
                 Text("Instagram")
             } footer: {
-                Text("Required — your Instagram is how new friends verify you're a real person.")
+                Text("Optional — adding your Instagram helps new friends see you're a real person.")
             }
             Section {
                 Toggle(isOn: $model.acceptedTerms) {

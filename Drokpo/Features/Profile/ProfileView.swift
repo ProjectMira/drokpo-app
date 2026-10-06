@@ -219,7 +219,7 @@ struct ProfileView: View {
 
     private var socialsSection: some View {
         Section("Socials") {
-            row("Instagram", profile?.socials?.instagram.map { "@\($0)" })
+            row("Instagram", profile?.socials?.instagram.flatMap { $0.isEmpty ? nil : "@\($0)" })
             if let youtube = profile?.socials?.youtube, !youtube.isEmpty {
                 row("YouTube", youtube)
             }
@@ -418,8 +418,6 @@ struct EditProfileView: View {
                     socialField("TikTok", text: $tiktok)
                 } header: {
                     Text("Socials")
-                } footer: {
-                    Text("Instagram is required.")
                 }
                 Section("Languages") {
                     ForEach(Vocabulary.languages, id: \.self) { language in
@@ -458,7 +456,6 @@ struct EditProfileView: View {
                         .disabled(
                             isSaving
                                 || displayName.trimmingCharacters(in: .whitespaces).isEmpty
-                                || trimmedInstagram.isEmpty
                         )
                 }
             }

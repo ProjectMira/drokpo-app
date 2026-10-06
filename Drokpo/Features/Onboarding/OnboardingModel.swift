@@ -59,8 +59,7 @@ final class OnboardingModel {
         case .aboutYou:
             return true // every prompt is optional
         case .socials:
-            // Instagram is the one social the backend requires on every profile.
-            return !trimmedInstagram.isEmpty && acceptedTerms
+            return acceptedTerms // Instagram is optional
         case .location:
             return true // falls back to region coordinates
         case .photos:
@@ -114,7 +113,7 @@ final class OnboardingModel {
                 let trimmed = $0.trimmingCharacters(in: .whitespacesAndNewlines)
                 return trimmed.isEmpty ? nil : trimmed
             },
-            socials: Socials(instagram: trimmedInstagram),
+            socials: Socials(instagram: trimmedInstagram.isEmpty ? nil : trimmedInstagram),
             location: location ?? Vocabulary.regionCoordinates[region] ?? GeoLocation(lat: 0, lng: 0),
             preferences: Preferences()
         )
