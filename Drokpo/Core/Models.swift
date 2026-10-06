@@ -49,6 +49,9 @@ struct Profile: Codable, Equatable, Identifiable {
     var photos: [Photo]?
     var preferences: Preferences?
     var onboardingComplete: Bool?
+    /// `false` hides the profile from everyone's swipe deck; nil (never set)
+    /// means shown.
+    var discoverable: Bool?
 
     var id: String { uid ?? "me" }
 
@@ -764,6 +767,7 @@ struct ProfileUpdate: Encodable {
     var socials: Socials?
     var location: GeoLocation?
     var preferences: Preferences?
+    var discoverable: Bool?
 }
 
 struct SwipeIn: Encodable {

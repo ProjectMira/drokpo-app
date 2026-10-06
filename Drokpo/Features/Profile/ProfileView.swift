@@ -16,6 +16,9 @@ struct ProfileView: View {
     /// re-synced from the server profile after each commit (or on failure).
     @State private var orderedPhotos: [Photo] = []
     @State private var draggedPhoto: Photo?
+    /// Optimistic value for the "Show me in Discover" switch while its save
+    /// is in flight; nil means "use the server profile".
+    @State private var pendingDiscoverable: Bool?
 
     private var profile: Profile? { session.myProfile }
 
@@ -229,11 +232,40 @@ struct ProfileView: View {
         }
     }
 
+    private var isDiscoverable: Bool {
+        pendingDiscoverable ?? profile?.discoverable ?? true
+    }
+
     private var preferencesSection: some View {
-        Section("Discovery preferences") {
+        Section {
+            Toggle("Show me in Discover", isOn: Binding(
+                get: { isDiscoverable },
+                set: { newValue in Task { await setDiscoverable(newValue) } }
+            ))
+            .disabled(profile == nil || pendingDiscoverable != nil)
             let preferences = profile?.preferences ?? Preferences()
             row("Age range", "\(preferences.ageMin)–\(preferences.ageMax)")
             row("Distance", "\(preferences.distanceKm) km")
+        } header: {
+            Text("Discovery preferences")
+        } footer: {
+            Text(isDiscoverable
+                ? "Your profile can appear in other people's swipe deck."
+                : "Your profile is hidden — nobody can find you by swiping. Your matches and chats keep working.")
+        }
+    }
+
+    private func setDiscoverable(_ value: Bool) async {
+        pendingDiscoverable = value
+        defer { pendingDiscoverable = nil }
+        do {
+            let _: EmptyResponse = try await APIClient.shared.patch(
+                "/api/profile/me",
+                body: ProfileUpdate(discoverable: value)
+            )
+            await session.refreshProfile()
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 
