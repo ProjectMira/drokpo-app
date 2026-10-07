@@ -123,6 +123,12 @@ struct ChatsView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+            Button {
+                router.select(.discover)
+            } label: {
+                Label("Discover people", systemImage: "rectangle.stack.fill")
+            }
+            .buttonStyle(.borderedProminent)
         }
         .padding()
     }

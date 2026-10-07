@@ -6,14 +6,10 @@ import SwiftUI
 /// for `.communities` (a person has none — see below) and `.profile` (their
 /// own community page vs. a person's dating profile).
 struct MainTabView: View {
-    enum Tab: Hashable {
-        case discover, likes, communities, chats, profile
-    }
-
     @Environment(SessionStore.self) private var session
     @State private var chats = ChatStore()
     @State private var router = DeepLinkRouter.shared
-    @State private var selection: Tab = .discover
+    @State private var selection: HomeTab = .discover
     /// A shared-content link being shown (chat-bubble tap, drokpo:// URL).
     @State private var sharedDestination: ShareDestination?
 
@@ -24,10 +20,10 @@ struct MainTabView: View {
         TabView(selection: $selection) {
             FeedView()
                 .tabItem { Label("Discover", systemImage: "rectangle.stack.fill") }
-                .tag(Tab.discover)
+                .tag(HomeTab.discover)
             LikesView()
                 .tabItem { Label("Likes", systemImage: "heart.fill") }
-                .tag(Tab.likes)
+                .tag(HomeTab.likes)
             // Persons browse communities from a button on the Discover deck
             // instead of a root tab — this tab exists only for a community
             // account's own page (create posts, see the Instagram-style grid).
@@ -36,12 +32,12 @@ struct MainTabView: View {
                     CommunityPageView(cid: myCid, ownerMode: true)
                 }
                 .tabItem { Label("Communities", systemImage: "person.3.fill") }
-                .tag(Tab.communities)
+                .tag(HomeTab.communities)
             }
             ChatsView()
                 .tabItem { Label("Chats", systemImage: "bubble.left.and.bubble.right.fill") }
                 .badge(chats.totalUnread)
-                .tag(Tab.chats)
+                .tag(HomeTab.chats)
             Group {
                 if isCommunity {
                     CommunityProfileEditorView()
@@ -50,7 +46,7 @@ struct MainTabView: View {
                 }
             }
             .tabItem { Label("Profile", systemImage: "person.fill") }
-            .tag(Tab.profile)
+            .tag(HomeTab.profile)
         }
         .environment(chats)
         .onAppear {
@@ -61,6 +57,7 @@ struct MainTabView: View {
         .onChange(of: router.pendingMatchId) { routeDeepLink() }
         .onChange(of: router.pendingType) { routeDeepLink() }
         .onChange(of: router.pendingShare) { consumePendingShare() }
+        .onChange(of: router.requestedTab) { consumeTabRequest() }
         .onDisappear { chats.stop() }
         .sheet(item: $sharedDestination) { destination in
             ShareDestinationView(destination: destination)
@@ -86,5 +83,15 @@ struct MainTabView: View {
         guard let destination = router.pendingShare else { return }
         router.pendingShare = nil
         sharedDestination = destination
+    }
+
+    private func consumeTabRequest() {
+        guard let tab = router.requestedTab else { return }
+        // A person account has no Communities tab; requests currently target
+        // only the shared tabs, but keep this guard future-proof.
+        if tab != .communities || isCommunity {
+            selection = tab
+        }
+        router.requestedTab = nil
     }
 }

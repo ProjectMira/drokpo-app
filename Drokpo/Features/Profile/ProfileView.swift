@@ -25,6 +25,9 @@ struct ProfileView: View {
     var body: some View {
         NavigationStack {
             List {
+                if profileCompletionCount < profileCompletionTotal {
+                    profileStrengthSection
+                }
                 photosSection
                 aboutSection
                 promptsSection
@@ -129,6 +132,58 @@ struct ProfileView: View {
             Text("Photos")
         } footer: {
             Text("Drag to reorder — your first photo is the one people see on your card.")
+        }
+    }
+
+    // A usable dating profile needs more than a name. This deliberately
+    // focuses on the details that help someone decide to start a conversation
+    // and leaves optional social links out of the score.
+    private let profileCompletionTotal = 4
+
+    private var answeredPromptCount: Int {
+        Vocabulary.questions.reduce(into: 0) { count, question in
+            if let answer = profile?.answers?[question.key], !answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                count += 1
+            }
+        }
+    }
+
+    private var profileCompletionCount: Int {
+        var count = 0
+        if !(profile?.photos ?? []).isEmpty { count += 1 }
+        if !(profile?.bio ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { count += 1 }
+        if !(profile?.interests ?? []).isEmpty { count += 1 }
+        if answeredPromptCount >= 2 { count += 1 }
+        return count
+    }
+
+    private var profileCompletionHint: String {
+        if (profile?.photos ?? []).isEmpty { return "Add a photo so people can recognize you." }
+        if (profile?.bio ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return "Add a short bio to share a little about yourself." }
+        if (profile?.interests ?? []).isEmpty { return "Choose a few interests to find common ground." }
+        return "Answer one more prompt to make starting a conversation easier."
+    }
+
+    private var profileStrengthSection: some View {
+        Section("Profile strength") {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("\(profileCompletionCount) of \(profileCompletionTotal) essentials complete")
+                        .font(.subheadline.weight(.semibold))
+                    Spacer()
+                    Text("\(profileCompletionCount * 25)%")
+                        .font(.subheadline.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+                ProgressView(value: Double(profileCompletionCount), total: Double(profileCompletionTotal))
+                    .tint(.accentColor)
+                Text(profileCompletionHint)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                Button("Complete profile") { showEditSheet = true }
+                    .buttonStyle(.bordered)
+            }
+            .padding(.vertical, 4)
         }
     }
 

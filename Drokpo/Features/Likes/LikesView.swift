@@ -236,6 +236,12 @@ struct LikesView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+            Button {
+                router.select(.discover)
+            } label: {
+                Label("Go to Discover", systemImage: "rectangle.stack.fill")
+            }
+            .buttonStyle(.borderedProminent)
         }
         .frame(maxHeight: .infinity)
         .padding()
