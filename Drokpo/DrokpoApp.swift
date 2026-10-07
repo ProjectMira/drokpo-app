@@ -25,6 +25,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 @main
 struct DrokpoApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+    @Environment(\.scenePhase) private var scenePhase
     @AppStorage("drokpo.appearance") private var appearance: AppearanceMode = .system
     @State private var session: SessionStore
 
@@ -57,6 +58,13 @@ struct DrokpoApp: App {
                     // isn't swallowed by GIDSignIn.
                     if Auth.auth().canHandle(url) { return }
                     GIDSignIn.sharedInstance.handle(url)
+                }
+                .onChange(of: scenePhase) { _, phase in
+                    // If the member enables notifications in Settings, retry
+                    // APNs/FCM registration as soon as they return to Drokpo.
+                    guard phase == .active,
+                          session.state == .activePerson || session.state == .activeCommunity else { return }
+                    PushService.shared.enable()
                 }
         }
     }

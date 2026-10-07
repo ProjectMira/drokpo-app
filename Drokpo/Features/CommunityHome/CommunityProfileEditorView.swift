@@ -161,6 +161,11 @@ struct CommunityProfileEditorView: View {
                         Image(systemName: "gearshape")
                     }
                 }
+                if let community, let uid = community.uid {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        ShareButton(content: .community(cid: uid, name: community.name))
+                    }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     if justSaved {
                         Label("Saved", systemImage: "checkmark")

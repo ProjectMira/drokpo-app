@@ -52,6 +52,11 @@ struct ProfileView: View {
                     }
                     .disabled(profile == nil)
                 }
+                if let profile {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        ShareButton(content: .profile(profile.asFeedCard))
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Edit") { showEditSheet = true }
                 }

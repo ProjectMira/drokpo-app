@@ -1,4 +1,6 @@
 import SwiftUI
+import UIKit
+import UserNotifications
 
 // MARK: - Appearance
 
@@ -35,6 +37,7 @@ struct SettingsView: View {
     @State private var showDeleteConfirmation = false
     @State private var isDeleting = false
     @State private var errorMessage: String?
+    @State private var notificationStatus: UNAuthorizationStatus = .notDetermined
 
     private var appVersion: String {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
@@ -52,6 +55,24 @@ struct SettingsView: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                }
+                Section {
+                    HStack {
+                        Label("Likes, matches, and messages", systemImage: "bell.badge")
+                        Spacer()
+                        Text(notificationStatusLabel)
+                            .foregroundStyle(notificationStatus == .denied ? .orange : .secondary)
+                    }
+                    if notificationStatus == .denied {
+                        Button("Open Notification Settings") {
+                            guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+                            UIApplication.shared.open(url)
+                        }
+                    }
+                } header: {
+                    Text("Notifications")
+                } footer: {
+                    Text("Turn these on to know when someone likes you or sends a message.")
                 }
                 Section("About") {
                     Link(destination: AppConfig.privacyPolicyURL) {
@@ -90,6 +111,8 @@ struct SettingsView: View {
                 }
             }
             .overlay { if isDeleting { ProgressView() } }
+            .task { await refreshNotificationStatus() }
+            .onAppear { Task { await refreshNotificationStatus() } }
             .confirmationDialog(
                 "Delete your account?",
                 isPresented: $showDeleteConfirmation,
@@ -125,6 +148,19 @@ struct SettingsView: View {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    private var notificationStatusLabel: String {
+        switch notificationStatus {
+        case .authorized, .provisional, .ephemeral: "On"
+        case .denied: "Off"
+        case .notDetermined: "Not set"
+        @unknown default: "Unavailable"
+        }
+    }
+
+    private func refreshNotificationStatus() async {
+        notificationStatus = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
     }
 }
 

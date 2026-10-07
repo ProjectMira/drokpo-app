@@ -20,14 +20,26 @@ final class PushService: NSObject {
         UNUserNotificationCenter.current().delegate = self
     }
 
-    /// Ask for notification permission and sync the token. Called every time
-    /// the session becomes active; the system prompt only shows once.
+    /// Ask for notification permission and sync the token. Called whenever an
+    /// active account returns to the foreground; iOS only presents its prompt
+    /// once, while a later Settings change is picked up automatically.
     func enable() {
         Task { @MainActor in
+            guard Auth.auth().currentUser != nil else { return }
+            let center = UNUserNotificationCenter.current()
+            let settings = await center.notificationSettings()
             let options: UNAuthorizationOptions = [.alert, .badge, .sound]
-            let granted = (try? await UNUserNotificationCenter.current().requestAuthorization(options: options)) ?? false
+            let granted: Bool
+            if settings.authorizationStatus == .notDetermined {
+                granted = (try? await center.requestAuthorization(options: options)) ?? false
+            } else {
+                granted = settings.authorizationStatus == .authorized
+                    || settings.authorizationStatus == .provisional
+                    || settings.authorizationStatus == .ephemeral
+            }
             guard granted else { return }
             UIApplication.shared.registerForRemoteNotifications()
+            fetchCurrentToken()
             self.uploadTokenIfNeeded()
         }
     }
@@ -56,6 +68,18 @@ final class PushService: NSObject {
             } catch {
                 // Retried on the next enable() or token rotation.
             }
+        }
+    }
+
+    /// The delegate callback normally supplies this token. Fetch it as well:
+    /// Firebase can mint a token before an account finishes loading, in which
+    /// case relying only on the callback left the device unregistered until a
+    /// future token rotation.
+    private func fetchCurrentToken() {
+        Messaging.messaging().token { [weak self] token, _ in
+            guard let self, let token else { return }
+            self.currentToken = token
+            self.uploadTokenIfNeeded()
         }
     }
 }

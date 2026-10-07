@@ -50,11 +50,17 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         # REVERSED_CLIENT_ID from GoogleService-Info.plist, used as the Google sign-in redirect URL scheme.
         GOOGLE_REVERSED_CLIENT_ID: com.googleusercontent.apps.246225694981-ern5vh2rgijmht2bkubvbg232mlkfnpp
+        # Expanded into the entitlements file at signing time. TestFlight and
+        # App Store builds must carry the production APNs environment; a
+        # development entitlement can register locally but never receive the
+        # production pushes sent to TestFlight devices.
+        APS_ENVIRONMENT: development
       configs:
         Debug:
           # Simulator/local dev: let Xcode manage its own dev signing identity.
           CODE_SIGN_STYLE: Automatic
         Release:
+          APS_ENVIRONMENT: production
           # Archive (CI TestFlight uploads) signs with one fixed, CI-owned
           # "Apple Distribution" identity instead of Automatic signing, which
           # mints a brand-new certificate on every run (ephemeral runners never
@@ -86,10 +92,10 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLSchemes:
               - $(GOOGLE_REVERSED_CLIENT_ID)
-          # Shared-content deep links (drokpo://s/{type}/{id}) — share.html's
-          # "Open in Drokpo" button. No signing capability needed, unlike
-          # universal links (those need Associated Domains on the App ID +
-          # a regenerated CI provisioning profile before they can ship).
+        # Shared-content deep links (drokpo://s/{type}/{id}) — share.html's
+        # "Open in Drokpo" button. The hosted Apple App Site Association file
+        # also makes this ready for Universal Links once Associated Domains is
+        # enabled on the App ID and the CI profile is regenerated.
           - CFBundleURLSchemes:
               - drokpo
     entitlements:
@@ -97,6 +103,6 @@ targets:
       properties:
         com.apple.developer.applesignin:
           - Default
-        # Push notifications for new matches/messages (backend Cloud Functions
-        # send via FCM). Xcode maps this to "production" in distribution builds.
-        aps-environment: development
+        # Push notifications for likes, matches, and messages. The value is
+        # development for local builds and production for TestFlight/App Store.
+        aps-environment: $(APS_ENVIRONMENT)
